@@ -8,18 +8,27 @@ const addUser = async (displayName, email, username, password, profilePictureFil
     try {
       const usersCollection = collection(db, "users");
   
-      // Step 1: Retrieve the latest id
-      const q = query(usersCollection, orderBy("id", "desc"), limit(1));
-      const querySnapshot = await getDocs(q);
+      // Check if username already exists
+      const usernameQuery = query(usersCollection, where("username", "==", username));
+      const usernameQuerySnapshot = await getDocs(usernameQuery);
+  
+      if (!usernameQuerySnapshot.empty) {
+        console.error("Username already exists. Please choose a different username.");
+        return;
+      }
+  
+      // Retrieve the latest id
+      const idQuery = query(usersCollection, orderBy("id", "desc"), limit(1));
+      const idQuerySnapshot = await getDocs(idQuery);
   
       let newId = 1;
-      if (!querySnapshot.empty) {
-        const lastDoc = querySnapshot.docs[0];
+      if (!idQuerySnapshot.empty) {
+        const lastDoc = idQuerySnapshot.docs[0];
         const lastId = lastDoc.data().id;
         newId = lastId + 1;
       }
   
-      // Step 2: Hash the password
+      // Hash the password
       const saltRounds = 10; // Adjust as necessary for security/performance balance
       const hashedPassword = await bcrypt.hash(password, saltRounds);
   
@@ -34,7 +43,7 @@ const addUser = async (displayName, email, username, password, profilePictureFil
         profilePictureUrl = snapshot;
       }
   
-      // Step 3: Add the new user document with optional profile picture URL
+      // Add the new user document with optional profile picture URL
       const newUser = {
         id: newId,
         displayName: displayName,
@@ -52,8 +61,7 @@ const addUser = async (displayName, email, username, password, profilePictureFil
     } catch (e) {
       console.error("Error adding document: ", e);
     }
-  };
-  
+};  
 
 // Function to log in a user by verifying username and password
 const loginUser = async (username, password) => {
