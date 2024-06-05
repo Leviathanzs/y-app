@@ -1,10 +1,10 @@
 // userService.js
 import { collection, addDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import bcrypt from 'bcrypt';
-import { db } from './firebaseConfig';
+import { db } from '@/app/lib/firebase';
 
 // Function to add a user with auto-incremented id and hashed password
-const addUser = async (displayName, email, username, password, profilePictureFile = null) => {
+const addUser = async (displayName, email, username, password) => {
     try {
       const usersCollection = collection(db, "users");
   
@@ -58,10 +58,11 @@ const addUser = async (displayName, email, username, password, profilePictureFil
   
       const docRef = await addDoc(usersCollection, newUser);
       console.log("Document written with ID: ", docRef.id);
+      return null;
     } catch (e) {
-      console.error("Error adding document: ", e);
+        throw new Error('An error occurred during user registration.');
     }
-};  
+  };  
 
 // Function to log in a user by verifying username and password
 const loginUser = async (username, password) => {
