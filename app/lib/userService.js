@@ -57,36 +57,43 @@ const addUser = async (displayName, email, username, password, profilePictureFil
 
 // Function to log in a user by verifying username and password
 const loginUser = async (username, password) => {
-  try {
-    const usersCollection = collection(db, "users");
-
-    // Query the Firestore collection for a user with the specified username
-    const q = query(usersCollection, where("username", "==", username));
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-      console.error("No such user found!");
+    try {
+      const usersCollection = collection(db, "users");
+  
+      // Query the Firestore collection for a user with the specified username
+      const q = query(usersCollection, where("username", "==", username));
+      const querySnapshot = await getDocs(q);
+  
+      if (querySnapshot.empty) {
+        console.error("No such user found!");
+        return false;
+      }
+  
+      // Assuming usernames are unique, there should be exactly one document in the query result
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
+  
+      // Compare the provided password with the hashed password stored in Firestore
+      const passwordMatch = await bcrypt.compare(password, userData.password);
+  
+      if (passwordMatch) {
+        // Check if the user's email is verified
+        if (!userData.emailVerified) {
+          console.error("Email not verified. Please verify your email.");
+          return false;
+        }
+  
+        console.log("Login successful!");
+        return true;
+      } else {
+        console.error("Incorrect password!");
+        return false;
+      }
+    } catch (e) {
+      console.error("Error logging in: ", e);
       return false;
     }
-
-    // Assuming usernames are unique, there should be exactly one document in the query result
-    const userDoc = querySnapshot.docs[0];
-    const userData = userDoc.data();
-
-    // Compare the provided password with the hashed password stored in Firestore
-    const passwordMatch = await bcrypt.compare(password, userData.password);
-
-    if (passwordMatch) {
-      console.log("Login successful!");
-      return true;
-    } else {
-      console.error("Incorrect password!");
-      return false;
-    }
-  } catch (e) {
-    console.error("Error logging in: ", e);
-    return false;
-  }
-};
+  };
+  
 
 export { addUser, loginUser };
