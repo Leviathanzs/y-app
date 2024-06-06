@@ -1,7 +1,7 @@
 // components/RegisterForm.tsx
 'use client'
 
-import { useState } from 'react';
+import React, { useState } from 'react'; // Import React
 import { addUser } from '@/app/lib/userService'; // Import the addUser function from your userService
 
 const RegisterForm: React.FC = () => {
@@ -54,6 +54,6 @@ const RegisterForm: React.FC = () => {
       {errorMessage && <p className="text-red-500 mt-2">{errorMessage}</p>}
     </div>
   );
-};
+}
 
 export default RegisterForm;
