@@ -1,68 +1,68 @@
-// userService.js
-import { collection, addDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore";
-import bcrypt from 'bcrypt';
-import { db } from '@/app/lib/firebase';
-
 // Function to add a user with auto-incremented id and hashed password
-const addUser = async (displayName, email, username, password) => {
+import { collection, query, where, getDocs, orderBy, limit, addDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import bcrypt from 'bcryptjs'; 
+import { db } from '@/app/lib/firebase'
+
+const addUser = async (displayName, email, username, password, profilePictureFile) => {
     try {
-      const usersCollection = collection(db, "users");
-  
-      // Check if username already exists
-      const usernameQuery = query(usersCollection, where("username", "==", username));
-      const usernameQuerySnapshot = await getDocs(usernameQuery);
-  
-      if (!usernameQuerySnapshot.empty) {
-        console.error("Username already exists. Please choose a different username.");
-        return;
-      }
-  
-      // Retrieve the latest id
-      const idQuery = query(usersCollection, orderBy("id", "desc"), limit(1));
-      const idQuerySnapshot = await getDocs(idQuery);
-  
-      let newId = 1;
-      if (!idQuerySnapshot.empty) {
-        const lastDoc = idQuerySnapshot.docs[0];
-        const lastId = lastDoc.data().id;
-        newId = lastId + 1;
-      }
-  
-      // Hash the password
-      const saltRounds = 10; // Adjust as necessary for security/performance balance
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-  
-      let profilePictureUrl = null;
-      if (profilePictureFile) {
-        // Upload profile picture to Firebase Storage
-        const storageRef = ref(storage, `profilePictures/${username}-${Date.now()}`);
-        const uploadTask = uploadBytes(storageRef, profilePictureFile);
-  
-        // Wait for the upload to complete and get the download URL
-        const snapshot = await getDownloadURL(uploadTask);
-        profilePictureUrl = snapshot;
-      }
-  
-      // Add the new user document with optional profile picture URL
-      const newUser = {
-        id: newId,
-        displayName: displayName,
-        email: email,
-        username: username,
-        password: hashedPassword
-      };
-  
-      if (profilePictureUrl) {
-        newUser.profilePictureUrl = profilePictureUrl;
-      }
-  
-      const docRef = await addDoc(usersCollection, newUser);
-      console.log("Document written with ID: ", docRef.id);
-      return null;
-    } catch (e) {
-        throw new Error('An error occurred during user registration.');
+        // Initialize Firebase Firestore and Storage references
+        const usersCollection = collection(db, "users");
+
+        // Check if username already exists
+        const usernameQuery = query(usersCollection, where("username", "==", username));
+        const usernameQuerySnapshot = await getDocs(usernameQuery);
+
+        if (!usernameQuerySnapshot.empty) {
+            throw new Error("Username already exists. Please choose a different username.");
+        }
+
+        // Retrieve the latest id
+        const idQuery = query(usersCollection, orderBy("id", "desc"), limit(1));
+        const idQuerySnapshot = await getDocs(idQuery);
+
+        let newId = 1;
+        if (!idQuerySnapshot.empty) {
+            const lastDoc = idQuerySnapshot.docs[0];
+            const lastId = lastDoc.data().id;
+            newId = lastId + 1;
+        }
+
+        // Hash the password
+        const saltRounds = 10; // Adjust as necessary for security/performance balance
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        let profilePictureUrl = null;
+        if (profilePictureFile) {
+            // Upload profile picture to Firebase Storage
+            const storageRef = ref(storage, `profilePictures/${username}-${Date.now()}`);
+            const uploadTask = uploadBytes(storageRef, profilePictureFile);
+
+            // Wait for the upload to complete and get the download URL
+            const snapshot = await getDownloadURL(uploadTask);
+            profilePictureUrl = snapshot;
+        }
+
+        // Add the new user document with optional profile picture URL
+        const newUser = {
+            id: newId,
+            displayName: displayName,
+            email: email,
+            username: username,
+            password: hashedPassword
+        };
+
+        if (profilePictureUrl) {
+            newUser.profilePictureUrl = profilePictureUrl;
+        }
+
+        const docRef = await addDoc(usersCollection, newUser);
+        console.log("Document written with ID: ", docRef.id);
+        return null;
+    } catch (error) {
+        throw error; // Rethrow the error to be caught and handled appropriately
     }
-  };  
+};
 
 // Function to log in a user by verifying username and password
 const loginUser = async (username, password) => {
